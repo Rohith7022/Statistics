@@ -1,0 +1,35 @@
+#NSSO
+
+# Load data
+nsso_df <- read.csv("NSSO68.csv")
+
+# Fit initial model
+model <- lm(Consumption_Expenditure ~ Monthly_Income + Education_Level + Age, data = nsso_df)
+
+# Diagnostics
+plot(model)  # 4-plot diagnostic: Residuals vs Fitted, QQ Plot, Scale-Location, Residuals vs Leverage
+
+# Log-transform the dependent variable
+nsso_df$Log_Consumption <- log(nsso_df$Consumption_Expenditure)
+
+# Refit with log-transformed consumption
+model_log <- lm(Log_Consumption ~ Monthly_Income + Education_Level + Age, data = nsso_df)
+summary(model_log)
+plot(model_log)
+
+#IPL
+
+# Load data
+ipl_df <- read.csv("IPL_ball_by_ball_updated till 2024.csv")
+
+# Fit regression
+model_ipl <- lm(Salary_Lakhs ~ Runs + Strike_Rate + Wickets, data = ipl_df)
+
+# Summary and diagnostics
+summary(model_ipl)
+plot(model_ipl)
+
+# Scatter plots
+ggplot(ipl_df, aes(x = Runs, y = Salary_Lakhs)) + geom_point() + geom_smooth(method = "lm")
+ggplot(ipl_df, aes(x = Strike_Rate, y = Salary_Lakhs)) + geom_point() + geom_smooth(method = "lm")
+ggplot(ipl_df, aes(x = Wickets, y = Salary_Lakhs)) + geom_point() + geom_smooth(method = "lm")
