@@ -1,0 +1,449 @@
+getwd()
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+install.packages("fitdistrplus")
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("ggrepel")
+install.packages("readxl")  # Run once
+library(readxl)
+install.packages("AER")   # Contains tobit()
+library(AER)
+
+# Install if not already
+install.packages(c("tidyverse", "caret", "pROC", "rpart", "rpart.plot", "ROCR", "e1071"))
+
+# Load packages
+library(tidyverse)
+library(caret)
+library(pROC)
+library(rpart)
+library(rpart.plot)
+library(ROCR)
+library(e1071)  # for confusionMatrix
+
+
+
+# Load data from Downloads folder (Mac)
+data <- read.csv("~/Downloads/Loan Eligibility Prediction.csv")
+
+# Check the structure
+str(data)
+
+# Load dataset from Downloads
+data <- read.csv("~/Downloads/Loan Eligibility Prediction.csv")
+
+# Standardize column names
+colnames(data) <- make.names(colnames(data))
+
+# Drop Customer_ID (not useful for prediction)
+data <- data %>% select(-Customer_ID)
+
+# Fix Loan_Status: Make it factor with uppercase levels
+data$Loan_Status <- toupper(data$Loan_Status)
+data$Loan_Status <- factor(data$Loan_Status, levels = c("N", "Y"))
+
+# Convert categorical variables to factors
+data$Gender <- as.factor(data$Gender)
+data$Married <- as.factor(data$Married)
+data$Education <- as.factor(data$Education)
+data$Self_Employed <- as.factor(data$Self_Employed)
+data$Property_Area <- as.factor(data$Property_Area)
+
+# Fix Dependents: If it's broken, remove or extract properly
+# Check first:
+unique(data$Dependents)
+# If needed, treat as character then factor
+data$Dependents <- as.factor(as.character(data$Dependents))
+
+# Drop rows with NA
+data <- na.omit(data)
+
+# Final structure check
+str(data)
+
+
+# Fix Loan_Status: make upper case and factor
+data$Loan_Status <- toupper(as.character(data$Loan_Status))
+data$Loan_Status <- factor(data$Loan_Status, levels = c("N", "Y"))
+
+# If Dependents are coded as 3+, fix it
+data$Dependents <- as.character(data$Dependents)
+data$Dependents[data$Dependents == "3+"] <- "3"
+data$Dependents <- factor(data$Dependents)
+
+# Double check levels
+levels(data$Loan_Status)
+levels(data$Dependents)
+
+
+set.seed(123)
+split <- createDataPartition(data$Loan_Status, p = 0.7, list = FALSE)
+train <- data[split, ]
+test <- data[-split, ]
+
+
+
+logit_model <- glm(Loan_Status ~ ., data = train, family = "binomial")
+summary(logit_model)
+
+
+
+# Probabilities
+logit_probs <- predict(logit_model, newdata = test, type = "response")
+
+# Threshold at 0.5
+logit_pred <- ifelse(logit_probs > 0.5, "Y", "N")
+logit_pred <- factor(logit_pred, levels = c("N", "Y"))
+
+# Confusion matrix
+confusionMatrix(logit_pred, test$Loan_Status, positive = "Y")
+
+
+
+
+roc_logit <- roc(test$Loan_Status, as.numeric(logit_probs))
+plot(roc_logit, col = "blue", main = "ROC - Logistic Regression")
+auc(roc_logit)
+
+
+
+
+tree_model <- rpart(Loan_Status ~ ., data = train, method = "class")
+rpart.plot(tree_model, type = 3, extra = 104, fallen.leaves = TRUE)
+
+
+
+tree_pred <- predict(tree_model, newdata = test, type = "class")
+confusionMatrix(tree_pred, test$Loan_Status, positive = "Y")
+
+# ROC for tree
+tree_probs <- predict(tree_model, newdata = test, type = "prob")[,2]
+roc_tree <- roc(test$Loan_Status, tree_probs)
+plot(roc_tree, col = "darkgreen", main = "ROC - Decision Tree")
+
+auc(roc_tree)
+
+
+print(paste("Logistic Regression AUC:", round(auc(roc_logit), 3)))
+print(paste("Decision Tree AUC:", round(auc(roc_tree), 3)))
+
+
+
+#PART B
+
+getwd()
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+install.packages("fitdistrplus")
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("ggrepel")
+install.packages("readxl")  # Run once
+library(readxl)
+install.packages("AER")   # Contains tobit()
+library(AER)
+
+
+# Load libraries
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(fitdistrplus)
+library(ggpubr)
+
+
+# Load libraries
+library(dplyr)
+library(ggplot2)
+library(processx)         # For model evaluation
+library(MASS)         # For probit model
+
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(fitdistrplus)
+library(ggpubr)
+
+library(readxl)
+
+# Reading the file into R
+
+data <- read_excel("~/Downloads/NSSO68.xlsx")
+
+colSums(is.na(data))
+
+NSSO68 <- data
+
+colnames(data)
+
+NSSO68$NonVeg <- ifelse(NSSO68$nonvegtotal_q > 0, 1, 0)
+
+
+NSSO68$Urban <- ifelse(NSSO68$Sector == "Urban", 1,
+                       ifelse(NSSO68$Sector == "Rural", 0, NA))
+
+NSSO68$Religion <- as.factor(NSSO68$Religion)
+NSSO68$Caste <- as.factor(NSSO68$Social_Group)
+NSSO68$Education <- as.numeric(as.character(NSSO68$Education))
+NSSO68$MPCE <- as.numeric(as.character(NSSO68$MPCE_MRP))  # or MPCE_URP if preferred
+
+library(dplyr)
+
+NSSO68_clean <- NSSO68[, c("NonVeg", "MPCE", "Urban", "Religion", "Caste", "Education")]
+NSSO68_clean <- na.omit(NSSO68_clean)
+
+
+# Recreate 'NonVeg'
+NSSO68$NonVeg <- ifelse(NSSO68$nonvegtotal_q > 0, 1, 0)
+
+# Recreate 'Urban'
+NSSO68$Urban <- ifelse(NSSO68$Sector == "Urban", 1,
+                       ifelse(NSSO68$Sector == "Rural", 0, NA))
+
+# Convert other variables
+NSSO68$Religion <- as.factor(NSSO68$Religion)
+NSSO68$Caste <- as.factor(NSSO68$Social_Group)
+NSSO68$Education <- as.numeric(as.character(NSSO68$Education))
+NSSO68$MPCE <- as.numeric(as.character(NSSO68$MPCE_MRP))
+
+# Now only drop rows where these specific columns are NA
+NSSO68_clean <- NSSO68 %>%
+  filter(!is.na(NonVeg) & !is.na(MPCE) & !is.na(Urban) &
+           !is.na(Religion) & !is.na(Caste) & !is.na(Education))
+
+
+
+
+table(NSSO68_clean$Urban)
+table(NSSO68_clean$Religion)
+table(NSSO68_clean$Caste)
+
+
+
+# Check Urban
+table(NSSO68$Urban, useNA = "always")
+
+# Check Religion
+table(NSSO68$Religion, useNA = "always")
+
+# Check Caste
+table(NSSO68$Social_Group, useNA = "always")
+
+# Check Education
+summary(NSSO68$Education)
+
+# Check MPCE
+summary(NSSO68$MPCE_MRP)
+
+# Check NonVeg
+table(NSSO68$nonvegtotal_q > 0)
+
+
+
+
+# Recreate NonVeg
+NSSO68$NonVeg <- ifelse(NSSO68$nonvegtotal_q > 0, 1, 0)
+
+# Convert religion & caste to factors
+NSSO68$Religion <- as.factor(NSSO68$Religion)
+NSSO68$Caste <- as.factor(NSSO68$Social_Group)
+
+# Convert numeric predictors
+NSSO68$Education <- as.numeric(as.character(NSSO68$Education))
+NSSO68$MPCE <- as.numeric(as.character(NSSO68$MPCE_MRP))
+
+# Create cleaned dataset (excluding 'Urban')
+NSSO68_clean <- NSSO68 %>%
+  filter(!is.na(NonVeg) & !is.na(MPCE) & !is.na(Education) &
+           !is.na(Religion) & !is.na(Caste))
+
+
+
+table(NSSO68_clean$NonVeg)
+
+table(NSSO68$NonVeg)
+
+
+summary(NSSO68$nonvegtotal_q)
+
+# Create a nonveg indicator from actual non-veg food items
+NSSO68$NonVeg <- ifelse(
+  rowSums(NSSO68[, c("eggsno_q", "fishprawn_q", "goatmeat_q", 
+                     "beef_q", "pork_q", "chicken_q", "othrbirds_q")], 
+          na.rm = TRUE) > 0, 1, 0)
+
+table(NSSO68$NonVeg)
+
+# Convert necessary variables
+NSSO68$Religion <- as.character(NSSO68$Religion)
+NSSO68$Religion[NSSO68$Religion %in% c("5", "6", "7", "9")] <- "Other"
+NSSO68$Religion <- as.factor(NSSO68$Religion)
+
+NSSO68$Caste <- as.character(NSSO68$Social_Group)
+NSSO68$Caste[NSSO68$Caste %in% c("9")] <- "Other"
+NSSO68$Caste <- as.factor(NSSO68$Caste)
+
+NSSO68$Education <- as.numeric(as.character(NSSO68$Education))
+NSSO68$MPCE <- as.numeric(as.character(NSSO68$MPCE_MRP))
+
+# Clean only required rows
+NSSO68_clean <- NSSO68 %>%
+  filter(!is.na(NonVeg) & !is.na(MPCE) & !is.na(Education) &
+           !is.na(Religion) & !is.na(Caste)) %>%
+  filter(NonVeg %in% c(0, 1))
+
+probit_model <- glm(NonVeg ~ MPCE + Religion + Caste + Education,
+                    data = NSSO68_clean,
+                    family = binomial(link = "probit"))
+
+summary(probit_model)
+
+
+table(NSSO68$NonVeg)
+
+library(ggplot2)
+
+# Predict probability
+NSSO68_clean$predicted_prob <- predict(probit_model, type = "response")
+
+# MPCE vs Probability
+ggplot(NSSO68_clean, aes(x = MPCE, y = predicted_prob)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", color = "blue") +
+  labs(title = "Probability of Being Non-Vegetarian vs MPCE",
+       x = "Monthly Per Capita Expenditure (MPCE)",
+       y = "Predicted Probability (Non-Vegetarian)") +
+  theme_minimal()
+
+
+
+NSSO68$Religion <- factor(NSSO68$Religion,
+                          levels = c(1, 2, 3, 4, 5, 6, 7, 9),
+                          labels = c("Hindu", "Muslim", "Christian", "Sikh", "Jain", "Buddhist", "Other", "No Religion"))
+
+library(ggplot2)
+library(dplyr)
+
+NSSO68_clean %>%
+  group_by(Religion) %>%
+  summarise(avg_prob = mean(predicted_prob, na.rm = TRUE)) %>%
+  ggplot(aes(x = reorder(Religion, -avg_prob), y = avg_prob, fill = Religion)) +
+  geom_col(show.legend = FALSE) +
+  labs(title = "Average Probability of Being Non-Vegetarian by Religion",
+       x = "Religion",
+       y = "Predicted Probability") +
+  theme_minimal() +
+  coord_flip()
+
+
+
+NSSO68_clean$Religion <- factor(NSSO68_clean$Religion,
+                                levels = c(1, 2, 3, 4, 5, 6, 7, 9),
+                                labels = c("Hindu", "Muslim", "Christian", "Sikh", "Jain", "Buddhist", "Other", "No Religion"))
+
+table(NSSO68_clean$Religion)
+
+
+
+library(dplyr)
+library(ggplot2)
+
+NSSO68_clean %>%
+  group_by(Religion) %>%
+  summarise(avg_prob = mean(predicted_prob, na.rm = TRUE)) %>%
+  ggplot(aes(x = reorder(Religion, -avg_prob), y = avg_prob, fill = Religion)) +
+  geom_col(show.legend = FALSE) +
+  labs(title = "Average Probability of Being Non-Vegetarian by Religion",
+       x = "Religion", y = "Predicted Probability") +
+  theme_minimal() +
+  coord_flip()
+
+write.csv(as.data.frame(summary(probit_model)$coefficients),
+          "probit_model_results.csv", row.names = TRUE)
+
+write.csv(NSSO68_clean[, c("MPCE", "Religion", "Caste", "Education", "predicted_prob")],
+          "predicted_probabilities.csv", row.names = FALSE)
+
+
+PART C
+
+# Load required libraries
+library(dplyr)
+library(AER)
+
+# Create total non-veg quantity variable (sum of individual items)
+NSSO68$nonveg_total_q <- rowSums(NSSO68[, c("eggsno_q", "fishprawn_q", "goatmeat_q",
+                                            "beef_q", "pork_q", "chicken_q", "othrbirds_q")],
+                                 na.rm = TRUE)
+
+# Create binary NonVeg variable
+NSSO68$NonVeg <- ifelse(NSSO68$nonveg_total_q > 0, 1, 0)
+
+
+# Religion and Caste formatting
+NSSO68$Religion <- as.character(NSSO68$Religion)
+NSSO68$Religion[NSSO68$Religion %in% c("5", "6", "7", "9")] <- "Other"
+NSSO68$Religion <- as.factor(NSSO68$Religion)
+
+NSSO68$Caste <- as.character(NSSO68$Social_Group)
+NSSO68$Caste[NSSO68$Caste %in% c("9")] <- "Other"
+NSSO68$Caste <- as.factor(NSSO68$Caste)
+
+# Numeric conversions
+NSSO68$MPCE <- as.numeric(as.character(NSSO68$MPCE_MRP))
+NSSO68$Education <- as.numeric(as.character(NSSO68$Education))
+
+
+NSSO68_clean <- NSSO68 %>%
+  filter(!is.na(nonveg_total_q) & !is.na(MPCE) & !is.na(Religion) &
+           !is.na(Caste) & !is.na(Education))
+
+
+tobit_model <- tobit(nonveg_total_q ~ MPCE + Religion + Caste + Education,
+                     left = 0, data = NSSO68_clean)
+
+summary(tobit_model)
+
+
+
+install.packages("broom")
+install.packages("writexl")
+
+library(broom)
+library(writexl)
+
+class(tobit_model)
+
+
+# Load required libraries
+library(AER)
+library(writexl)
+
+# Rerun Tobit model cleanly
+tobit_model <- tobit(nonveg_total_q ~ MPCE + Religion + Caste + Education,
+                     left = 0,
+                     data = NSSO68_clean)
+
+# Cleanly extract coefficients from summary
+tobit_summary <- summary(tobit_model)
+tobit_coef <- as.data.frame(tobit_summary$coefficients)
+
+# Rename columns
+colnames(tobit_coef) <- c("Estimate", "Std_Error", "Z_value", "P_value")
+
+# Add variable names
+tobit_coef$Variable <- rownames(tobit_coef)
+tobit_coef <- tobit_coef[, c("Variable", "Estimate", "Std_Error", "Z_value", "P_value")]
+
+# Export to Excel
+write_xlsx(tobit_coef, "Tobit_Model_Results.xlsx")
+
+
+
+
