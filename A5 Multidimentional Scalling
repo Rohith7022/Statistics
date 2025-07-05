@@ -1,0 +1,42 @@
+# Load necessary libraries
+library(readr)
+library(dplyr)
+## 
+## Attaching package: 'dplyr'
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+library(stats)
+library(ggplot2)
+
+
+# Load data icecream from Downloads folder (Mac)
+icecream <- read.csv("~/Downloads/icecream.csv")
+
+# Step 2: Set brand names as row names
+rownames(icecream) <- icecream$Brand
+icecream <- icecream[, -1]  # Remove 'Brand' column
+
+# Step 3: Handle missing values (e.g., replace with column mean)
+icecream <- icecream %>% mutate(across(everything(), ~ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+# Step 4: Compute distance matrix (Euclidean distance)
+diss_matrix <- dist(icecream)
+
+# Step 5: Apply Classical Multidimensional Scaling (MDS)
+mds_result <- cmdscale(diss_matrix, k = 2, eig = TRUE)
+
+# Step 6: Extract coordinates
+mds_coords <- as.data.frame(mds_result$points)
+colnames(mds_coords) <- c("Dim1", "Dim2")
+mds_coords$Brand <- rownames(mds_coords)
+
+# Step 7: Plot the MDS result
+ggplot(mds_coords, aes(x = Dim1, y = Dim2, label = Brand)) +
+  geom_point(size = 4, color = "blue") +
+  geom_text(vjust = -0.5, hjust = 0.5) +
+  theme_minimal() +
+  ggtitle("MDS Plot of Ice Cream Brands")
