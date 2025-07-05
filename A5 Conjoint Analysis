@@ -1,0 +1,109 @@
+#Conjoint Analysis
+
+getwd()
+## [1] "/Users/rohithr/sip"
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+
+# Load your data
+pizza_data <- read.csv("~/Downloads/pizza_data_cleaned.csv", stringsAsFactors = TRUE)
+
+# Reverse ranking to create a score
+pizza_data$rating <- max(pizza_data$ranking) + 1 - pizza_data$ranking
+
+# Ensure all variables are factors
+cols <- c("price", "weight", "crust", "cheese", "size", "toppings", "spicy")
+pizza_data[cols] <- lapply(pizza_data[cols], as.factor)
+
+# Create dummy-coded design matrix (drop intercept)
+design_matrix <- model.matrix(~ price + weight + crust + cheese + size + toppings + spicy - 1, data = pizza_data)
+
+# Fit regression model manually
+model <- lm(pizza_data$rating ~ design_matrix)
+
+# Extract part-worth utilities
+utilities <- coef(model)[-1]  # Remove intercept
+
+# Display part-worths
+print("Part-worth Utilities:")
+## [1] "Part-worth Utilities:"
+print(utilities)
+##           design_matrixprice1           design_matrixprice2 
+##                         -1.50                         -0.75 
+##           design_matrixprice3           design_matrixprice4 
+##                         -0.75                            NA 
+##       design_matrixweight200g       design_matrixweight300g 
+##                          3.00                          6.25 
+##       design_matrixweight400g        design_matrixcrustthin 
+##                         10.75                          3.50 
+## design_matrixcheeseMozzarella      design_matrixsizeregular 
+##                         -0.50                         -0.50 
+##   design_matrixtoppingspaneer      design_matrixspicynormal 
+##                          2.25                          1.50
+attribute_prefixes <- c(
+  "design_matrixprice",
+  "design_matrixweight",
+  "design_matrixcrust",
+  "design_matrixcheese",
+  "design_matrixsize",
+  "design_matrixtoppings",
+  "design_matrixspicy"
+)
+
+
+# Compute importance of each attribute
+# Custom importance function
+get_importance <- function(utilities, prefix) {
+  levels <- grep(paste0("^", prefix), names(utilities), value = TRUE)
+  if (length(levels) > 0) {
+    range <- max(utilities[levels], na.rm = TRUE) - min(utilities[levels], na.rm = TRUE)
+  } else {
+    range <- 0
+  }
+  return(range)
+}
+
+# Calculate importance
+importance_raw <- sapply(attribute_prefixes, function(attr) get_importance(utilities, attr))
+importance_percent <- round(100 * importance_raw / sum(importance_raw), 2)
+
+# Rename attributes for clean output
+names(importance_percent) <- c("price", "weight", "crust", "cheese", "size", "toppings", "spicy")
+
+# Print results
+print("Attribute Importance (%):")
+## [1] "Attribute Importance (%):"
+print(importance_percent)
+##    price   weight    crust   cheese     size toppings    spicy 
+##     8.82    91.18     0.00     0.00     0.00     0.00     0.00
+library(ggplot2)
+
+# Plot part-worth utilities
+utility_df <- data.frame(
+  AttributeLevel = names(utilities),
+  Utility = as.numeric(utilities)
+)
+
+ggplot(utility_df, aes(x = reorder(AttributeLevel, Utility), y = Utility)) +
+  geom_col(fill = "#4682B4") +
+  coord_flip() +
+  labs(title = "Part-Worth Utilities",
+       x = "Attribute Level",
+       y = "Utility Score")
+## Warning: Removed 1 row containing missing values or values outside the scale range
+## (`geom_col()`).
+ 
+# Plot attribute importance
+importance_df <- data.frame(
+  Attribute = names(importance_percent),
+  Importance = as.numeric(importance_percent)
+)
+
+ggplot(importance_df, aes(x = reorder(Attribute, Importance), y = Importance)) +
+  geom_col(fill = "#FFA07A") +
+  coord_flip() +
+  labs(title = "Attribute Importance (%)",
+       x = "Attribute",
+       y = "Importance")
