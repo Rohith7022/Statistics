@@ -1,0 +1,116 @@
+# Perform Principal Component Analysis and Factor Analysis to identify data dimensions
+
+getwd()
+## [1] "/Users/rohithr/sip"
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+install.packages("fitdistrplus")
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+install.packages("ggplot2")
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+install.packages("dplyr")
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+install.packages("ggrepel")
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+install.packages("readxl")  # Run once
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+library(readxl)
+install.packages("AER")   # Contains tobit()
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+library(AER)
+## Loading required package: car
+## Loading required package: carData
+## Loading required package: lmtest
+## Loading required package: zoo
+## 
+## Attaching package: 'zoo'
+## The following objects are masked from 'package:base':
+## 
+##     as.Date, as.Date.numeric
+## Loading required package: sandwich
+## Loading required package: survival
+# Load necessary libraries
+library(readr)
+library(psych)
+## 
+## Attaching package: 'psych'
+## The following object is masked from 'package:car':
+## 
+##     logit
+install.packages("FactoMineR")
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+library(FactoMineR)
+install.packages("factoextra")
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+library(factoextra)
+## Loading required package: ggplot2
+## 
+## Attaching package: 'ggplot2'
+## The following objects are masked from 'package:psych':
+## 
+##     %+%, alpha
+## Welcome! Want to learn more? See two factoextra-related books at https://goo.gl/ve3WBa
+install.packages("GPArotation")
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+library(GPArotation)
+## 
+## Attaching package: 'GPArotation'
+## The following objects are masked from 'package:psych':
+## 
+##     equamax, varimin
+install.packages("corrplot")
+## 
+## The downloaded binary packages are in
+##  /var/folders/p4/7k7s59gs6fbb4fdxvxmp_0lc0000gn/T//Rtmp2NnIwB/downloaded_packages
+library(corrplot)
+## corrplot 0.95 loaded
+# Load data from Downloads folder (Mac)
+data <- read.csv("~/Downloads/Survey.csv")
+
+# Select numeric columns
+numeric_data <- data[sapply(data, is.numeric)]
+numeric_data <- na.omit(numeric_data)
+
+# Standardize data
+scaled_data <- scale(numeric_data)
+
+# Now proceed with PCA and FA as shown earlier
+# Step 3: Standardize the data
+scaled_data <- scale(numeric_data)
+{r#} #       Principal Component Analysis ```{r#} # Step 4: Perform PCA pca_result <- prcomp(scaled_data, center = TRUE, scale. = TRUE)
+Step 5: PCA summary and scree plot
+summary(pca_result) fviz_eig(pca_result, addlabels = TRUE, ylim = c(0, 50))
+Step 6: Biplot and PCA variable contributions
+fviz_pca_biplot(pca_result, repel = TRUE) fviz_pca_var(pca_result, col.var = “contrib”, gradient.cols = c(“blue”, “orange”, “red”), repel = TRUE)
+```{r#}
+#       Factor Analysis
+```{r#}
+Step 7: Determine number of factors (using scree and parallel analysis)
+fa.parallel(scaled_data, fa = “both”, n.iter = 100)
+Step 8: Perform Factor Analysis with chosen number of factors (e.g., 3)
+fa_result <- fa(scaled_data, nfactors = 3, rotate = “varimax”)
+Step 9: Print and interpret FA results
+print(fa_result)
+Step 10: Visualize factor loadings
+fa.diagram(fa_result)
+Optional: Correlation matrix visualization
+corrplot(cor(scaled_data), method = “circle”) ```
